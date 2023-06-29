@@ -11,7 +11,6 @@ type closure = {
 }
 
 let is_correct_type (module CT : SCT) ~closure_subtyping t =
-  let decl_by_id id decl = CT.HO.decl_by_id (( === ) id) decl in
   conde
     [
       (* Array: always allow *)
@@ -20,14 +19,15 @@ let is_correct_type (module CT : SCT) ~closure_subtyping t =
       fresh
         (id actual_params expected_params super supers length)
         (t === !!(Class (id, actual_params)))
-        (decl_by_id id !!(C !!{ params = expected_params; super; supers }))
+        (CT.HO.decl_by_id id
+           !!(C !!{ params = expected_params; super; supers }))
         (List.lengtho expected_params length)
         (List.lengtho actual_params length);
       (* Interface: should be metioned in interface declarations with the same arguments amount *)
       fresh
         (id actual_params expected_params supers length)
         (t === !!(Interface (id, actual_params)))
-        (decl_by_id id !!(I !!{ params = expected_params; supers }))
+        (CT.HO.decl_by_id id !!(I !!{ params = expected_params; supers }))
         (List.lengtho expected_params length)
         (List.lengtho actual_params length);
       (* Variable: lower bound should be subtype of upper bound *)

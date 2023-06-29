@@ -25,18 +25,15 @@ module type SAMPLE_CLASSTABLE = sig
   val make_interface_fix : (int -> jtype list) -> (int -> jtype list) -> int
 
   module HO : sig
-    val decl_by_id : (int ilogic -> goal) -> HO.decl_injected -> goal
+    val decl_by_id : int ilogic -> HO.decl_injected -> goal
 
     val get_superclass :
-      (int ilogic -> goal) ->
-      (int ilogic -> goal) ->
-      HO.jtype_injected Std.Option.injected ->
-      goal
+      int ilogic -> int ilogic -> HO.jtype_injected Std.Option.injected -> goal
 
-    val object_t : HO.jtype_injected -> goal
-    val cloneable_t : HO.jtype_injected -> goal
-    val serializable_t : HO.jtype_injected -> goal
-    val new_var : (GT.unit ilogic -> goal) -> int ilogic -> goal
+    val object_t : HO.jtype_injected
+    val cloneable_t : HO.jtype_injected
+    val serializable_t : HO.jtype_injected
+    val new_var : unit -> int ilogic
   end
 end
 
@@ -220,56 +217,42 @@ module SampleCT () : SAMPLE_CLASSTABLE = struct
     let get_superclass_disjs_args () =
       Lazy.force (update_disj_args ()).get_superclass
 
-    let decl_by_id : (int ilogic -> goal) -> HO.decl_injected -> goal =
+    let decl_by_id : int ilogic -> HO.decl_injected -> goal =
      fun id rez ->
-      fresh id_val (id id_val)
-        (debug_var id_val (Fun.flip OCanren.reify) (function
-          | [ Value id ] when id = top_id -> failure
-          | [ Value id ] -> (
-              match M.find id !m with
-              | d -> rez === decl_inj d
-              | exception Not_found ->
-                  failwith (Printf.sprintf "Not_found: id = %d" id))
-          | _ -> (
-              let disj_args = get_decl_by_id_disjs_args () in
-              let disjs =
-                Stdlib.List.map
-                  (fun (k, v) -> id_val === k &&& (rez === v))
-                  disj_args
-              in
-              match disjs with [] -> failure | _ -> conde disjs)))
+      debug_var id (Fun.flip OCanren.reify) (function
+        | [ Value id ] when id = top_id -> failure
+        | [ Value id ] -> (
+            match M.find id !m with
+            | d -> rez === decl_inj d
+            | exception Not_found ->
+                failwith (Printf.sprintf "Not_found: id = %d" id))
+        | _ -> (
+            let disj_args = get_decl_by_id_disjs_args () in
+            let disjs =
+              Stdlib.List.map (fun (k, v) -> id === k &&& (rez === v)) disj_args
+            in
+            match disjs with [] -> failure | _ -> conde disjs))
 
     let get_superclass :
-        (int ilogic -> goal) ->
-        (int ilogic -> goal) ->
+        int ilogic ->
+        int ilogic ->
         HO.jtype_injected Std.Option.injected ->
         goal =
-     fun sub_id super_id some_rez ->
-      fresh
-        (sub_id_val super_id_val rez)
-        (sub_id sub_id_val) (super_id super_id_val)
-        (some_rez === Std.some rez)
+     fun sub_id super_id some_res ->
+      fresh res
+        (some_res === Std.some res)
         (let disj_args = get_superclass_disjs_args () in
          let disjs =
            Stdlib.List.map
              (fun (sub, sup, super) ->
-               sub_id_val === sub &&& (super_id_val === sup) &&& (rez === super))
+               sub_id === sub &&& (super_id === sup) &&& (res === super))
              disj_args
          in
          match disjs with [] -> failure | _ -> conde disjs)
 
-    let object_t =
-      let object_t = jtype_inj object_t in
-      fun x -> x === object_t
-
-    let cloneable_t =
-      let cloneable_t = jtype_inj cloneable_t in
-      fun x -> x === cloneable_t
-
-    let serializable_t =
-      let serializable_t = jtype_inj serializable_t in
-      fun x -> x === serializable_t
-
-    let new_var _ x = x === !!(new_id ())
+    let object_t = jtype_inj object_t
+    let cloneable_t = jtype_inj cloneable_t
+    let serializable_t = jtype_inj serializable_t
+    let new_var () = !!(new_id ())
   end
 end

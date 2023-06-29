@@ -297,7 +297,7 @@ let _ =
   in
   let _ =
     run_jtype ~n:5 ~msg:"? <-< Collection<String>" (fun q ->
-        fresh () (q =/= !!JGS.HO.Null) (q <=< jtype_inj (collection string))
+        fresh () (q =/= !!JGS.HO.Null) (q <-< jtype_inj (collection string))
         (* *))
   in
   ()
